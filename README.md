@@ -11,3 +11,8 @@ pip install C:\Users\CR\Downloads\Twisted-17.5.0-cp36-cp36m-win_amd64.whl
 安装完成后，再次运行：
 pip install Scrapy
 即可成功。
+
+
+### scrapy 常用命令
+> scrapy startproject (projectName) -> create a scrapy project
+> scrapy genspider example example.com -> create a spider template for a site
