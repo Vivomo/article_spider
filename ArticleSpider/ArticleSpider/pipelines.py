@@ -9,6 +9,8 @@ from scrapy.exporters import JsonItemExporter
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 import codecs
 import json
+import MySQLdb
+
 
 class ArticlespiderPipeline(object):
     def process_item(self, item, spider):
@@ -52,3 +54,18 @@ class ArticleImagePipeline(ImagesPipeline):
             image_path = value['path']
         item['cover_path'] = image_path
         return item
+
+
+class MysqlPipeline(object):
+    def __init__(self):
+        self.conn = MySQLdb.connect('127.0.0.1', 'root', '000000', 'article_spider', charset='utf8', use_unicode=True)
+        self.cursor = self.conn.cursor()
+
+    def process_item(self, item, spider):
+        insert_sql = """
+            insert into article(title, create_date, url, url_object_id)
+            VALUES (%s, %s, %s, %s)
+        """
+        self.cursor.execute(insert_sql, (item['title'], item['create_date'], item['url'], item['url_object_id']))
+        self.conn.commit()
+        # return item

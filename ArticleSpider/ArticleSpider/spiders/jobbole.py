@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import datetime
+
 import scrapy
 from scrapy.http import Request
 from urllib import parse
@@ -35,7 +37,7 @@ class JobboleSpider(scrapy.Spider):
         :return:
         """
         article_item = ArticleItem()
-        title = response.css('.entry-header h1::text').extract()
+        title = response.css('.entry-header h1::text').extract()[0]
         content = response.css('.entry').extract()[0]
         create_date = response.css("p.entry-meta-hide-on-mobile::text").extract()[0].replace("·", "").strip()
 
@@ -44,5 +46,9 @@ class JobboleSpider(scrapy.Spider):
         article_item['cover'] = [response.meta.get('cover', '')]
         article_item['title'] = title
         article_item['content'] = content
+        try:
+            create_date = datetime.datetime.strptime(create_date, '%Y/%m/%d').date()
+        except Exception as e:
+            create_date = datetime.datetime.now().date()
         article_item['create_date'] = create_date
         yield article_item
