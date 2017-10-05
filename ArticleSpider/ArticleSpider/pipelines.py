@@ -2,6 +2,7 @@
 
 from scrapy.pipelines.images import ImagesPipeline
 from scrapy.exporters import JsonItemExporter
+from twisted.enterprise import adbapi
 
 # Define your item pipelines here
 #
@@ -10,6 +11,7 @@ from scrapy.exporters import JsonItemExporter
 import codecs
 import json
 import MySQLdb
+import MySQLdb.cursors
 
 
 class ArticlespiderPipeline(object):
@@ -48,7 +50,6 @@ class JsonExporterPipeline(object):
 
 
 class ArticleImagePipeline(ImagesPipeline):
-
     def item_completed(self, results, item, info):
         for success, value in results:
             image_path = value['path']
@@ -69,3 +70,40 @@ class MysqlPipeline(object):
         self.cursor.execute(insert_sql, (item['title'], item['create_date'], item['url'], item['url_object_id']))
         self.conn.commit()
         # return item
+
+
+class MysqlTwistedPipeline(object):
+    def __init__(self, dbpool):
+        self.dbpool = dbpool
+
+    @classmethod
+    def from_settings(cls, settings):
+        dbparms = dict(
+            host=settings["MYSQL_HOST"],
+            db=settings["MYSQL_DBNAME"],
+            user=settings["MYSQL_USER"],
+            passwd=settings["MYSQL_PASSWORD"],
+            charset='utf8',
+            cursorclass=MySQLdb.cursors.DictCursor,
+            use_unicode=True,
+        )
+        dbpool = adbapi.ConnectionPool("MySQLdb", **dbparms)
+
+        return cls(dbpool)
+
+    def process_item(self, item, spider):
+        # 使用twisted将MySQL插入变成异步执行
+        query = self.dbpool.runInteraction(self.do_insert, item)
+        query.addErrback(self.handle_error)  # 处理异常
+
+    def handle_error(self, failure):
+        # 处理一部插入的异常
+        print(failure)
+
+    def do_insert(self, cursor, item):
+        # run insert
+        insert_sql = """
+                    insert into article(title, create_date, url, url_object_id)
+                    VALUES (%s, %s, %s, %s)
+                """
+        cursor.execute(insert_sql, (item['title'], item['create_date'], item['url'], item['url_object_id']))
