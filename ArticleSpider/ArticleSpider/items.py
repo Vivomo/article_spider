@@ -20,3 +20,5 @@ class ArticleItem(scrapy.Item):
     create_date = scrapy.Field()
     url = scrapy.Field()
     cover = scrapy.Field()
+    cover_path = scrapy.Field()
+
