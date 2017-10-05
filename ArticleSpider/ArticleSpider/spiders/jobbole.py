@@ -3,6 +3,9 @@ import scrapy
 from scrapy.http import Request
 from urllib import parse
 
+from ArticleSpider.items import ArticleItem
+
+
 class JobboleSpider(scrapy.Spider):
     name = 'jobbole'
     allowed_domains = ['blog.jobbole.com']
@@ -15,9 +18,11 @@ class JobboleSpider(scrapy.Spider):
         :param response:
         :return:
         """
-        post_urls = response.css('.archive-title::attr(href)').extract()
-        for url in post_urls:
-            yield Request(url=parse.urljoin(response.url, url), callback=self.parse_detail)
+        thumb_nodes = response.css('#archive .post-thumb a')
+        for node in thumb_nodes:
+            url = node.css('::attr(href)').extract_first('')
+            cover = node.css('img::attr(src)').extract_first('')
+            yield Request(url=parse.urljoin(response.url, url), meta={'cover': cover}, callback=self.parse_detail)
         next_url = response.css('.next.page-numbers::attr(href)').extract_first("")
         if next_url:
             yield Request(url=parse.urljoin(response.url, next_url), callback=self.parse)
@@ -28,6 +33,14 @@ class JobboleSpider(scrapy.Spider):
         :param response:
         :return:
         """
+        article_item = ArticleItem()
         title = response.css('.entry-header h1::text').extract()
         content = response.css('.entry').extract()[0]
-        print(title, content)
+        create_date = response.css("p.entry-meta-hide-on-mobile::text").extract()[0].replace("·", "").strip()
+
+        article_item['url'] = response.url
+        article_item['cover'] = [response.meta.get('cover', '')]
+        article_item['title'] = title
+        article_item['content'] = content
+        article_item['create_date'] = create_date
+        yield article_item
