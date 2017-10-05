@@ -4,6 +4,7 @@ from scrapy.http import Request
 from urllib import parse
 
 from ArticleSpider.items import ArticleItem
+from ArticleSpider.utils.common import get_md5
 
 
 class JobboleSpider(scrapy.Spider):
@@ -38,6 +39,7 @@ class JobboleSpider(scrapy.Spider):
         content = response.css('.entry').extract()[0]
         create_date = response.css("p.entry-meta-hide-on-mobile::text").extract()[0].replace("·", "").strip()
 
+        article_item['url_object_id'] = get_md5(response.url)
         article_item['url'] = response.url
         article_item['cover'] = [response.meta.get('cover', '')]
         article_item['title'] = title
