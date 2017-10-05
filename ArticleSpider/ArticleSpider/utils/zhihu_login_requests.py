@@ -94,7 +94,7 @@ def zhihu_login(account, password):
 #     username, password = pw.read().strip().split('|')
 # zhihu_login(username, password)
 # get_index()
-print(is_login())
+# print(is_login())
 
 # get_captcha()
 

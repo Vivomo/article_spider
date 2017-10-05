@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from ArticleSpider.utils.common import get_zhihu_xsrf
+
 import json
 import re
 
@@ -16,7 +18,7 @@ class ZhihuSpider(scrapy.Spider):
     headers = {
         "HOST": "www.zhihu.com",
         "Referer": "https://www.zhizhu.com",
-        'User-Agent': "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:51.0) Gecko/20100101 Firefox/51.0"
+        'User-Agent': "Mozilla/5.0 (iPhone; CPU iPhone OS 9_1 like Mac OS X) AppleWebKit/601.1.46 (KHTML, like Gecko) Version/9.0 Mobile/13B143 Safari/601.1"
     }
 
     custom_settings = {
@@ -27,7 +29,7 @@ class ZhihuSpider(scrapy.Spider):
         pass
 
     def start_requests(self):
-        return [scrapy.Request('https://www.zhihu.com/#signin', headers=self.headers, callback=self.login)]
+        return [scrapy.Request('https://www.zhihu.com/#signin', headers=self.headers, callback=self.login_after_captcha)]
 
     def login(self, response):
         response_text = response.text
@@ -37,7 +39,7 @@ class ZhihuSpider(scrapy.Spider):
             xsrf = (match_obj.group(1))
 
         if xsrf:
-            post_url = "https://www.zhihu.com/login/phone_num"
+            post_url = "https://www.zhihu.com/login/email"
             post_data = {
                 "_xsrf": xsrf,
                 "phone_num": "",
@@ -52,23 +54,33 @@ class ZhihuSpider(scrapy.Spider):
                                  callback=self.login_after_captcha)
 
     def login_after_captcha(self, response):
-        with open("captcha.jpg", "wb") as f:
-            f.write(response.body)
-            f.close()
+        # with open("captcha.jpg", "wb") as f:
+        #     f.write(response.body)
+        #     f.close()
+        #
+        # from PIL import Image
+        # try:
+        #     im = Image.open('captcha.jpg')
+        #     im.show()
+        #     im.close()
+        # except:
+        #     pass
+        #
+        # captcha = input("输入验证码\n>")
 
-        from PIL import Image
-        try:
-            im = Image.open('captcha.jpg')
-            im.show()
-            im.close()
-        except:
-            pass
-
-        captcha = input("输入验证码\n>")
-
-        post_data = response.meta.get("post_data", {})
-        post_url = "https://www.zhihu.com/login/phone_num"
-        post_data["captcha"] = captcha
+        # post_data = response.meta.get("post_data", {})
+        # post_url = "https://www.zhihu.com/login/phone_num"
+        with open(r'G:\code\article_spider\article_spider\ArticleSpider\ArticleSpider\utils\password.txt') as file:
+            email, password = file.read().strip().split('|')
+        xsrf = get_zhihu_xsrf(response.text)
+        print('xsrf', xsrf)
+        post_url = "https://www.zhihu.com/login/email"
+        post_data = {
+            'email': email,
+            'password': password,
+            '_xsrf': xsrf
+        }
+        # post_data["captcha"] = captcha
         return [scrapy.FormRequest(
             url=post_url,
             formdata=post_data,
@@ -82,3 +94,4 @@ class ZhihuSpider(scrapy.Spider):
         if "msg" in text_json and text_json["msg"] == "登录成功":
             for url in self.start_urls:
                 yield scrapy.Request(url, dont_filter=True, headers=self.headers)
+
