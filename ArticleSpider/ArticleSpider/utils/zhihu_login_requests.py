@@ -7,10 +7,10 @@ import re
 
 session = requests.session()
 session.cookies = cookielib.LWPCookieJar(filename="cookies.txt")
-try:
-    session.cookies.load(ignore_discard=True)
-except:
-    print("cookie未能加载")
+# try:
+#     session.cookies.load(ignore_discard=True)
+# except:
+#     print("cookie未能加载")
 
 agent = "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:51.0) Gecko/20100101 Firefox/51.0"
 header = {
@@ -24,16 +24,13 @@ def is_login():
     # 通过个人中心页面返回状态码来判断是否为登录状态
     inbox_url = "https://www.zhihu.com/question/56250357/answer/148534773"
     response = session.get(inbox_url, headers=header, allow_redirects=False)
-    if response.status_code != 200:
-        return False
-    else:
-        return True
+    return response.status_code == 200
 
 
 def get_xsrf():
     # 获取xsrf code
     response = session.get("https://www.zhihu.com", headers=header)
-    match_obj = re.match('.*name="_xsrf" value="(.*?)"', response.text)
+    match_obj = re.search('.*name="_xsrf" value="(.*?)"', response.text)
     if match_obj:
         return (match_obj.group(1))
     else:
@@ -93,9 +90,11 @@ def zhihu_login(account, password):
     response_text = session.post(post_url, data=post_data, headers=header)
     session.cookies.save()
 
-
-zhihu_login("18782902568", "admin123")
+# with open('password.txt', 'r', encoding='utf-8') as pw:
+#     username, password = pw.read().strip().split('|')
+# zhihu_login(username, password)
 # get_index()
-is_login()
+print(is_login())
 
 # get_captcha()
+

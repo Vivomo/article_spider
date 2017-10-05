@@ -101,3 +101,6 @@ ENV/
 .mypy_cache/
 .idea/
 ArticleSpider/ArticleSpider/images/
+ArticleSpider/ArticleSpider/utils/cookies.txt
+ArticleSpider/ArticleSpider/utils/captcha.jpg
+ArticleSpider/ArticleSpider/utils/password.txt
