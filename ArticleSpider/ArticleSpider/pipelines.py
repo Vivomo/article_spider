@@ -11,3 +11,12 @@ from scrapy.pipelines.images import ImagesPipeline
 class ArticlespiderPipeline(object):
     def process_item(self, item, spider):
         return item
+
+
+class ArticleImagePipeline(ImagesPipeline):
+
+    def item_completed(self, results, item, info):
+        for success, value in results:
+            image_path = value['path']
+        item['cover_path'] = image_path
+        return item

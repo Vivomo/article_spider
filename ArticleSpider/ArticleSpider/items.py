@@ -19,6 +19,7 @@ class ArticleItem(scrapy.Item):
     content = scrapy.Field()
     create_date = scrapy.Field()
     url = scrapy.Field()
+    url_object_id = scrapy.Field()
     cover = scrapy.Field()
     cover_path = scrapy.Field()
 
