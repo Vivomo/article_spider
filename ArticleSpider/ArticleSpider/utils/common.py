@@ -20,9 +20,9 @@ def get_zhihu_xsrf(html):
 
 def extract_num(text):
     # 从字符串中提取出数字
-    match_re = re.match(".*?(\d+).*", text)
+    match_re = re.search("\d+", text)
     if match_re:
-        nums = int(match_re.group(1))
+        nums = int(match_re.group())
     else:
         nums = 0
 
