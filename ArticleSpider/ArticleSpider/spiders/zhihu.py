@@ -3,12 +3,18 @@
 from ArticleSpider.utils.common import get_zhihu_xsrf
 from scrapy.loader import ItemLoader
 from urllib import parse
-from items import ZhihuQuestionItem, ZhihuAnswerItem
+from ArticleSpider.items import ZhihuQuestionItem, ZhihuAnswerItem
 
 import json
 import re
 import datetime
 import scrapy
+import os
+
+print(os.listdir())
+with open('./ArticleSpider/spiders/cookie.json') as cookie_file:
+    cookie_json = json.loads(cookie_file.read())
+    print(cookie_json)
 
 
 class ZhihuSpider(scrapy.Spider):
@@ -18,6 +24,7 @@ class ZhihuSpider(scrapy.Spider):
 
     # question的第一页answer的请求url
     start_answer_url = "https://www.zhihu.com/api/v4/questions/{0}/answers?sort_by=default&include=data%5B%2A%5D.is_normal%2Cis_sticky%2Ccollapsed_by%2Csuggest_edit%2Ccomment_count%2Ccollapsed_counts%2Creviewing_comments_count%2Ccan_comment%2Ccontent%2Ceditable_content%2Cvoteup_count%2Creshipment_settings%2Ccomment_permission%2Cmark_infos%2Ccreated_time%2Cupdated_time%2Crelationship.is_author%2Cvoting%2Cis_thanked%2Cis_nothelp%2Cupvoted_followees%3Bdata%5B%2A%5D.author.is_blocking%2Cis_blocked%2Cis_followed%2Cvoteup_count%2Cmessage_thread_token%2Cbadge%5B%3F%28type%3Dbest_answerer%29%5D.topics&limit={1}&offset={2}"
+    # start_answer_url = "https://www.zhihu.com/api/v4/questions/{0}/answers?sort_by=default&include=data%5B*%5D.is_normal%2Cadmin_closed_comment%2Creward_info%2Cis_collapsed%2Cannotation_action%2Cannotation_detail%2Ccollapse_reason%2Cis_sticky%2Ccollapsed_by%2Csuggest_edit%2Ccomment_count%2Ccan_comment%2Ccontent%2Ceditable_content%2Cvoteup_count%2Creshipment_settings%2Ccomment_permission%2Ccreated_time%2Cupdated_time%2Creview_info%2Cquestion%2Cexcerpt%2Crelationship.is_authorized%2Cis_author%2Cvoting%2Cis_thanked%2Cis_nothelp%2Cupvoted_followees%3Bdata%5B*%5D.mark_infos%5B*%5D.url%3Bdata%5B*%5D.author.follower_count%2Cbadge%5B%3F(type%3Dbest_answerer)%5D.topics&limit={1}&offset={2}"
 
     headers = {
         "HOST": "www.zhihu.com",
@@ -42,59 +49,74 @@ class ZhihuSpider(scrapy.Spider):
             if match_obj:
                 # 如果提取到question相关的页面则下载后交由提取函数进行提取
                 request_url = match_obj.group(1)
-                yield scrapy.Request(request_url, headers=self.headers, callback=self.parse_question)
-            else:
+                # yield scrapy.Request(request_url, headers=self.headers, meta={"id": match_obj.group(2)}, callback=self.parse_question)
+                answer_url = self.start_answer_url.format(match_obj.group(2), 20, 0)
+                yield scrapy.Request(answer_url, headers=self.headers, cookies=cookie_json, callback=self.parse_answer)
+            # else:
                 # 如果不是question页面则直接进一步跟踪
-                yield scrapy.Request(url, headers=self.headers, callback=self.parse)
+                # yield scrapy.Request(url, headers=self.headers, callback=self.parse)
 
     def parse_question(self, response):
         # 处理question页面， 从页面中提取出具体的question item
-        if "QuestionHeader-title" in response.text:
-            # 处理新版本
-            match_obj = re.match("(.*zhihu.com/question/(\d+))(/|$).*", response.url)
-            if match_obj:
-                question_id = int(match_obj.group(2))
+        # wap
+        question_id = int(response.meta['id'])
 
-            item_loader = ItemLoader(item=ZhihuQuestionItem(), response=response)
-            item_loader.add_css("title", "h1.QuestionHeader-title::text")
-            item_loader.add_css("content", ".QuestionHeader-detail")
-            item_loader.add_value("url", response.url)
-            item_loader.add_value("zhihu_id", question_id)
-            item_loader.add_css("answer_num", ".List-headerText span::text")
-            item_loader.add_css("comments_num", ".QuestionHeader-actions button::text")
-            item_loader.add_css("watch_user_num", ".NumberBoard-value::text")
-            item_loader.add_css("topics", ".QuestionHeader-topics .Popover div::text")
+        item_loader = ItemLoader(item=ZhihuQuestionItem(), response=response)
+        item_loader.add_css("title", ".QuestionHeader-title::text")
+        item_loader.add_css("content", ".QuestionHeader-content .RichText")
+        item_loader.add_value("url", response.url)
+        item_loader.add_value("zhihu_id", question_id)
+        item_loader.add_css("answer_num", ".List-headerText span::text")
+        item_loader.add_css("comments_num", ".QuestionHeader-Comment .Button--plain::text")
+        # item_loader.add_css("watch_user_num", ".NumberBoard-value::text")
+        item_loader.add_css("topics", ".QuestionHeader-tags::text")
 
-            question_item = item_loader.load_item()
-        else:
-            # 处理老版本页面的item提取
-            match_obj = re.match("(.*zhihu.com/question/(\d+))(/|$).*", response.url)
-            if match_obj:
-                question_id = int(match_obj.group(2))
-
-            item_loader = ItemLoader(item=ZhihuQuestionItem(), response=response)
-            # item_loader.add_css("title", ".zh-question-title h2 a::text")
-            item_loader.add_xpath("title",
-                                  "//*[@id='zh-question-title']/h2/a/text()|//*[@id='zh-question-title']/h2/span/text()")
-            item_loader.add_css("content", "#zh-question-detail")
-            item_loader.add_value("url", response.url)
-            item_loader.add_value("zhihu_id", question_id)
-            item_loader.add_css("answer_num", "#zh-question-answer-num::text")
-            item_loader.add_css("comments_num", "#zh-question-meta-wrap a[name='addcomment']::text")
-            # item_loader.add_css("watch_user_num", "#zh-question-side-header-wrap::text")
-            item_loader.add_xpath("watch_user_num",
-                                  "//*[@id='zh-question-side-header-wrap']/text()|//*[@class='zh-question-followers-sidebar']/div/a/strong/text()")
-            item_loader.add_css("topics", ".zm-tag-editor-labels a::text")
-
-            question_item = item_loader.load_item()
-
-        yield scrapy.Request(self.start_answer_url.format(question_id, 20, 0), headers=self.headers,
-                             callback=self.parse_answer)
+        question_item = item_loader.load_item()
+        print(question_item)
+        answer_url = self.start_answer_url.format(question_id, 20, 0)
+        yield scrapy.Request(answer_url, headers=self.headers, callback=self.parse_answer)
         yield question_item
+        # if "QuestionHeader-title" in response.text:
+        #     # 处理新版本
+        #     match_obj = re.match("(.*zhihu.com/question/(\d+))(/|$).*", response.url)
+        #     question_id = int(match_obj.group(2))
+        #
+        #     item_loader = ItemLoader(item=ZhihuQuestionItem(), response=response)
+        #     item_loader.add_css("title", ".QuestionHeader-title::text")
+        #     item_loader.add_css("content", ".QuestionHeader-detail")
+        #     item_loader.add_value("url", response.url)
+        #     item_loader.add_value("zhihu_id", question_id)
+        #     item_loader.add_css("answer_num", ".List-headerText span::text")
+        #     item_loader.add_css("comments_num", ".QuestionHeader-actions button::text")
+        #     item_loader.add_css("watch_user_num", ".NumberBoard-value::text")
+        #     item_loader.add_css("topics", ".QuestionHeader-topics .Popover div::text")
+        #
+        #     question_item = item_loader.load_item()
+        # else:
+        #     # 处理老版本页面的item提取
+        #     match_obj = re.match("(.*zhihu.com/question/(\d+))(/|$).*", response.url)
+        #     if match_obj:
+        #         question_id = int(match_obj.group(2))
+        #
+        #     item_loader = ItemLoader(item=ZhihuQuestionItem(), response=response)
+        #     # item_loader.add_css("title", ".zh-question-title h2 a::text")
+        #     item_loader.add_xpath("title",
+        #                           "//*[@id='zh-question-title']/h2/a/text()|//*[@id='zh-question-title']/h2/span/text()")
+        #     item_loader.add_css("content", "#zh-question-detail")
+        #     item_loader.add_value("url", response.url)
+        #     item_loader.add_value("zhihu_id", question_id)
+        #     item_loader.add_css("answer_num", "#zh-question-answer-num::text")
+        #     item_loader.add_css("comments_num", "#zh-question-meta-wrap a[name='addcomment']::text")
+        #     # item_loader.add_css("watch_user_num", "#zh-question-side-header-wrap::text")
+        #     item_loader.add_xpath("watch_user_num",
+        #                           "//*[@id='zh-question-side-header-wrap']/text()|//*[@class='zh-question-followers-sidebar']/div/a/strong/text()")
+        #     item_loader.add_css("topics", ".zm-tag-editor-labels a::text")
+        #
+        #     question_item = item_loader.load_item()
 
-    def parse_answer(self, reponse):
+    def parse_answer(self, response):
         # 处理question的answer
-        ans_json = json.loads(reponse.text)
+        ans_json = json.loads(response.text)
         is_end = ans_json["paging"]["is_end"]
         next_url = ans_json["paging"]["next"]
 
@@ -118,7 +140,8 @@ class ZhihuSpider(scrapy.Spider):
             yield scrapy.Request(next_url, headers=self.headers, callback=self.parse_answer)
 
     def start_requests(self):
-        return [scrapy.Request('https://www.zhihu.com/#signin', headers=self.headers, callback=self.login_after_captcha)]
+        # return [scrapy.Request('https://www.zhihu.com/#signin', headers=self.headers, callback=self.login_after_captcha)]
+        return [scrapy.Request('https://www.zhihu.com', headers=self.headers)]
 
     def login(self, response):
         response_text = response.text

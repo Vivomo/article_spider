@@ -7,8 +7,8 @@
 import datetime
 
 import scrapy
-from settings import SQL_DATETIME_FORMAT, SQL_DATE_FORMAT
-from utils.common import extract_num
+from ArticleSpider.settings import SQL_DATETIME_FORMAT, SQL_DATE_FORMAT
+from ArticleSpider.utils.common import extract_num
 
 
 class ArticlespiderItem(scrapy.Item):
@@ -36,7 +36,6 @@ class ZhihuQuestionItem(scrapy.Item):
     content = scrapy.Field()
     answer_num = scrapy.Field()
     comments_num = scrapy.Field()
-    watch_user_num = scrapy.Field()
     click_num = scrapy.Field()
     crawl_time = scrapy.Field()
 
@@ -44,11 +43,11 @@ class ZhihuQuestionItem(scrapy.Item):
         # 插入知乎question表的sql语句
         insert_sql = """
             insert into zhihu_question(zhihu_id, topics, url, title, content, answer_num, comments_num,
-              watch_user_num, click_num, crawl_time
+              click_num, crawl_time
               )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE content=VALUES(content), answer_num=VALUES(answer_num), comments_num=VALUES(comments_num),
-              watch_user_num=VALUES(watch_user_num), click_num=VALUES(click_num)
+              click_num=VALUES(click_num)
         """
         zhihu_id = self["zhihu_id"][0]
         topics = ",".join(self["topics"])
@@ -87,7 +86,7 @@ class ZhihuAnswerItem(scrapy.Item):
     crawl_time = scrapy.Field()
 
     def get_insert_sql(self):
-        # 插入知乎question表的sql语句
+        # 插入知乎answer表的sql语句
         insert_sql = """
             insert into zhihu_answer(zhihu_id, url, question_id, author_id, content, parise_num, comments_num,
               create_time, update_time, crawl_time
