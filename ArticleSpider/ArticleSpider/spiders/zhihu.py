@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
+
 from ArticleSpider.utils.common import get_zhihu_xsrf
+from scrapy.loader import ItemLoader
 from urllib import parse
+from items import ZhihuQuestionItem, ZhihuAnswerItem
 
 import json
 import re
-
+import datetime
 import scrapy
 
 
