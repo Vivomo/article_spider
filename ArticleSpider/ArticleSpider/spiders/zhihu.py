@@ -9,9 +9,7 @@ import json
 import re
 import datetime
 import scrapy
-import os
 
-print(os.listdir())
 with open('./ArticleSpider/spiders/cookie.json') as cookie_file:
     cookie_json = json.loads(cookie_file.read())
     print(cookie_json)
@@ -49,9 +47,7 @@ class ZhihuSpider(scrapy.Spider):
             if match_obj:
                 # 如果提取到question相关的页面则下载后交由提取函数进行提取
                 request_url = match_obj.group(1)
-                # yield scrapy.Request(request_url, headers=self.headers, meta={"id": match_obj.group(2)}, callback=self.parse_question)
-                answer_url = self.start_answer_url.format(match_obj.group(2), 20, 0)
-                yield scrapy.Request(answer_url, headers=self.headers, cookies=cookie_json, callback=self.parse_answer)
+                yield scrapy.Request(request_url, headers=self.headers, meta={"id": match_obj.group(2)}, callback=self.parse_question)
             # else:
                 # 如果不是question页面则直接进一步跟踪
                 # yield scrapy.Request(url, headers=self.headers, callback=self.parse)
@@ -69,12 +65,12 @@ class ZhihuSpider(scrapy.Spider):
         item_loader.add_css("answer_num", ".List-headerText span::text")
         item_loader.add_css("comments_num", ".QuestionHeader-Comment .Button--plain::text")
         # item_loader.add_css("watch_user_num", ".NumberBoard-value::text")
-        item_loader.add_css("topics", ".QuestionHeader-tags::text")
+        item_loader.add_css("topics", ".TopicLink::text")
 
         question_item = item_loader.load_item()
         print(question_item)
         answer_url = self.start_answer_url.format(question_id, 20, 0)
-        yield scrapy.Request(answer_url, headers=self.headers, callback=self.parse_answer)
+        yield scrapy.Request(answer_url, headers=self.headers, cookies=cookie_json, callback=self.parse_answer)
         yield question_item
         # if "QuestionHeader-title" in response.text:
         #     # 处理新版本
@@ -128,7 +124,7 @@ class ZhihuSpider(scrapy.Spider):
             answer_item["question_id"] = answer["question"]["id"]
             answer_item["author_id"] = answer["author"]["id"] if "id" in answer["author"] else None
             answer_item["content"] = answer["content"] if "content" in answer else None
-            answer_item["parise_num"] = answer["voteup_count"]
+            answer_item["praise_num"] = answer["voteup_count"]
             answer_item["comments_num"] = answer["comment_count"]
             answer_item["create_time"] = answer["created_time"]
             answer_item["update_time"] = answer["updated_time"]
