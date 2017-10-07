@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from ArticleSpider.utils.common import get_zhihu_xsrf
+from urllib import parse
 
 import json
 import re
@@ -26,7 +27,22 @@ class ZhihuSpider(scrapy.Spider):
     }
 
     def parse(self, response):
-        pass
+        """
+        提取出html页面中的所有url 并跟踪这些url进行一步爬取
+        如果提取的url中格式为 /question/xxx 就下载之后直接进入解析函数
+        """
+        all_urls = response.css("a::attr(href)").extract()
+        all_urls = [parse.urljoin(response.url, url) for url in all_urls]
+        all_urls = filter(lambda x: True if x.startswith("https") else False, all_urls)
+        for url in all_urls:
+            match_obj = re.match("(.*zhihu.com/question/(\d+))(/|$).*", url)
+            if match_obj:
+                # 如果提取到question相关的页面则下载后交由提取函数进行提取
+                request_url = match_obj.group(1)
+                yield scrapy.Request(request_url, headers=self.headers, callback=self.parse_question)
+            else:
+                # 如果不是question页面则直接进一步跟踪
+                yield scrapy.Request(url, headers=self.headers, callback=self.parse)
 
     def start_requests(self):
         return [scrapy.Request('https://www.zhihu.com/#signin', headers=self.headers, callback=self.login_after_captcha)]
