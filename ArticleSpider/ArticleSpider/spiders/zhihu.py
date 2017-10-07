@@ -89,6 +89,31 @@ class ZhihuSpider(scrapy.Spider):
                              callback=self.parse_answer)
         yield question_item
 
+    def parse_answer(self, reponse):
+        # 处理question的answer
+        ans_json = json.loads(reponse.text)
+        is_end = ans_json["paging"]["is_end"]
+        next_url = ans_json["paging"]["next"]
+
+        # 提取answer的具体字段
+        for answer in ans_json["data"]:
+            answer_item = ZhihuAnswerItem()
+            answer_item["zhihu_id"] = answer["id"]
+            answer_item["url"] = answer["url"]
+            answer_item["question_id"] = answer["question"]["id"]
+            answer_item["author_id"] = answer["author"]["id"] if "id" in answer["author"] else None
+            answer_item["content"] = answer["content"] if "content" in answer else None
+            answer_item["parise_num"] = answer["voteup_count"]
+            answer_item["comments_num"] = answer["comment_count"]
+            answer_item["create_time"] = answer["created_time"]
+            answer_item["update_time"] = answer["updated_time"]
+            answer_item["crawl_time"] = datetime.datetime.now()
+
+            yield answer_item
+
+        if not is_end:
+            yield scrapy.Request(next_url, headers=self.headers, callback=self.parse_answer)
+
     def start_requests(self):
         return [scrapy.Request('https://www.zhihu.com/#signin', headers=self.headers, callback=self.login_after_captcha)]
 
