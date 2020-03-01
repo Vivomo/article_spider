@@ -30,7 +30,19 @@ class ArticleItem(scrapy.Item):
 class JPMItem(scrapy.Item):
     title = scrapy.Field()
     content = scrapy.Field()
-    cover = scrapy.Field()
+    index = scrapy.Field()
+
+    def get_insert_sql(self):
+        # 插入知乎answer表的sql语句
+        insert_sql = """
+            insert into jpm(title, content, `index`) VALUES (%s, %s, %s)
+        """
+
+        params = (
+            self["title"], self["content"], self["index"]
+        )
+
+        return insert_sql, params
 
 
 class ZhihuQuestionItem(scrapy.Item):

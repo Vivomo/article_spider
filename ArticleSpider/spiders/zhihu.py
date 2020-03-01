@@ -10,9 +10,9 @@ import re
 import datetime
 import scrapy
 
-with open('./ArticleSpider/spiders/cookie.json') as cookie_file:
-    cookie_json = json.loads(cookie_file.read())
-    print(cookie_json)
+# with open('./spiders/cookie.json') as cookie_file:
+#     cookie_json = json.loads(cookie_file.read())
+#     print(cookie_json)
 
 
 class ZhihuSpider(scrapy.Spider):
