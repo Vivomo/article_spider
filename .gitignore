@@ -100,8 +100,8 @@ ENV/
 # mypy
 .mypy_cache/
 .idea/
-ArticleSpider/ArticleSpider/images/
-ArticleSpider/ArticleSpider/utils/cookies.txt
-ArticleSpider/ArticleSpider/utils/captcha.jpg
-ArticleSpider/ArticleSpider/utils/password.txt
-ArticleSpider/ArticleSpider/spiders/cookie.json
+ArticleSpider/images/
+ArticleSpider/utils/cookies.txt
+ArticleSpider/utils/captcha.jpg
+ArticleSpider/utils/password.txt
+ArticleSpider/spiders/cookie.json

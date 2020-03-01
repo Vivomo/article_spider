@@ -27,6 +27,12 @@ class ArticleItem(scrapy.Item):
     cover_path = scrapy.Field()
 
 
+class JPMItem(scrapy.Item):
+    title = scrapy.Field()
+    content = scrapy.Field()
+    cover = scrapy.Field()
+
+
 class ZhihuQuestionItem(scrapy.Item):
     # 知乎的问题 item
     zhihu_id = scrapy.Field()

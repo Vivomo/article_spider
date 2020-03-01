@@ -64,7 +64,7 @@ class MysqlPipeline(object):
 
     def process_item(self, item, spider):
         insert_sql = """
-            insert into article(title, create_date, url, url_object_id)
+            insert into article(title, content, url, url_object_id)
             VALUES (%s, %s, %s, %s)
         """
         self.cursor.execute(insert_sql, (item['title'], item['create_date'], item['url'], item['url_object_id']))
